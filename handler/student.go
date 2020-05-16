@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sbdb-student/infrastructure"
 	"sbdb-student/model"
+	"sbdb-student/service/auth"
 	"sbdb-student/service/token"
 	"strconv"
 )
@@ -66,8 +67,9 @@ func putStudentHandler(w http.ResponseWriter, r *http.Request) {
 		row := infrastructure.DB.QueryRow(`
 		SELECT admin from college, student
 		WHERE student.college_id=college.id
-			AND student.user_id=$1;
-		`, content.Id)
+			AND student.user_id=$1
+			AND college.id=$2;
+		`, content.Id, content.CollegeId)
 		var adminId uint64
 		_ = row.Scan(&adminId)
 		if adminId != userId {
@@ -82,24 +84,24 @@ func postStudentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	tokenInHeader := r.Header.Get("Authorization")
 	userId, roleId := token.ValidateToken(tokenInHeader[7:])
-	var content model.Student
+	var content struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		model.Student
+	}
 	body, _ := ioutil.ReadAll(r.Body)
 	_ = json.Unmarshal(body, &content)
 	switch roleId {
 	case STUDENT:
-		if userId != content.Id {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
+		fallthrough
 	case TEACHER:
 		w.WriteHeader(http.StatusForbidden)
 		return
 	case COLLEGE_ADMIN:
 		row := infrastructure.DB.QueryRow(`
-		SELECT admin from college, student
-		WHERE student.college_id=college.id
-			AND student.user_id=$1;
-		`, content.Id)
+		SELECT admin from college
+		WHERE college.id=$1;
+		`, content.CollegeId)
 		var adminId uint64
 		_ = row.Scan(&adminId)
 		if adminId != userId {
@@ -107,7 +109,9 @@ func postStudentHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	model.Create(content)
+	id, _ := auth.SignIn(content.Username, content.Password)
+	content.Id = id
+	model.Create(content.Student)
 }
 
 func StudentHandler(w http.ResponseWriter, r *http.Request) {
