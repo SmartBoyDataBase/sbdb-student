@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 )
@@ -21,6 +22,7 @@ func SignIn(username string, password string) (uint64, error) {
 		"application/json",
 		bytes.NewReader(body))
 	if err != nil {
+		log.Println(err)
 		return 0, err
 	}
 	if resp.StatusCode != 200 {

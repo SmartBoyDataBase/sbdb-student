@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"sbdb-student/infrastructure"
 	"sbdb-student/model"
@@ -25,9 +26,12 @@ func getStudentHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		return
 	}
-	userId, roleId := token.ValidateToken(tokenInHeader[7:])
+	userId, roleId, err := token.ValidateToken(tokenInHeader[7:])
+	if err != nil {
+		log.Println("Failed to validate token with error", err)
+		return
+	}
 	var student model.Student
-	var err error
 	if roleId == STUDENT {
 		student, err = model.Get(userId)
 		if err != nil {
@@ -50,7 +54,11 @@ func getStudentHandler(w http.ResponseWriter, r *http.Request) {
 func putStudentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	tokenInHeader := r.Header.Get("Authorization")
-	userId, roleId := token.ValidateToken(tokenInHeader[7:])
+	userId, roleId, err := token.ValidateToken(tokenInHeader[7:])
+	if err != nil {
+		log.Println("Failed to validate token with error", err)
+		return
+	}
 	var content model.Student
 	body, _ := ioutil.ReadAll(r.Body)
 	_ = json.Unmarshal(body, &content)
@@ -83,7 +91,11 @@ func putStudentHandler(w http.ResponseWriter, r *http.Request) {
 func postStudentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	tokenInHeader := r.Header.Get("Authorization")
-	userId, roleId := token.ValidateToken(tokenInHeader[7:])
+	userId, roleId, err := token.ValidateToken(tokenInHeader[7:])
+	if err != nil {
+		log.Println("Failed to validate token with error", err)
+		return
+	}
 	var content struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -109,7 +121,11 @@ func postStudentHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	id, _ := auth.SignIn(content.Username, content.Password)
+	id, err := auth.SignIn(content.Username, content.Password)
+	if err != nil {
+		log.Println("Failed to sign in with error", err)
+		return
+	}
 	content.Id = id
 	model.Create(content.Student)
 	response, _ := json.Marshal(content.Student)
