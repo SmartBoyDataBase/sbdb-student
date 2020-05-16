@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/tealeg/xlsx"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,6 +11,10 @@ import (
 	"sbdb-student/service/auth"
 	"sbdb-student/service/token"
 	"strconv"
+	"strings"
+	"sync"
+	"time"
+	"unicode"
 )
 
 const (
@@ -130,6 +135,68 @@ func postStudentHandler(w http.ResponseWriter, r *http.Request) {
 	model.Create(content.Student)
 	response, _ := json.Marshal(content.Student)
 	w.Write(response)
+}
+
+func BatchImportStudentHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	tokenInHeader := r.Header.Get("Authorization")
+	_, roleId, err := token.ValidateToken(tokenInHeader[7:])
+	if err != nil {
+		log.Println("Failed to validate token with error", err)
+		return
+	}
+	if roleId != SUPERUSER {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	body, _ := ioutil.ReadAll(r.Body)
+	xls, err := xlsx.OpenBinary(body)
+	if err != nil {
+		log.Println("Failed to open the file uploaded")
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+	var wg sync.WaitGroup
+	for _, row := range xls.Sheets[0].Rows {
+		cells := row.Cells
+		if cells[0].Value[0] <= unicode.MaxASCII {
+			wg.Add(1)
+			go func(cells []*xlsx.Cell) {
+				defer wg.Done()
+				username := cells[0].Value
+				password := cells[1].Value
+				id, err := auth.SignIn(username, password)
+				if err != nil {
+					log.Println("Failed to sign in with error", err)
+					return
+				}
+				collegeName := strings.Trim(cells[2].Value, " \t\n")
+				row := infrastructure.DB.QueryRow(`
+				SELECT id from college where name=$1;
+				`, collegeName)
+				var collegeId uint64
+				_ = row.Scan(&collegeId)
+				birthday, _ := time.Parse("2006-01-02", cells[4].Value)
+				entranceDate, _ := time.Parse("2006-01-02", cells[5].Value)
+				sex := cells[6].Value
+				if sex == "男" || sex == "Male" {
+					sex = "male"
+				} else if sex == "女" || sex == "Female" {
+					sex = "female"
+				}
+				student := model.Student{
+					Id:           id,
+					CollegeId:    collegeId,
+					Name:         cells[3].Value,
+					Birthday:     birthday,
+					EntranceDate: entranceDate,
+					Sex:          sex,
+				}
+				model.Create(student)
+			}(cells)
+		}
+	}
+	wg.Wait()
 }
 
 func StudentHandler(w http.ResponseWriter, r *http.Request) {

@@ -33,6 +33,10 @@ func Create(student Student) uint64 {
 				RETURNING user_id;`, student.Id, student.CollegeId, student.Name, student.Birthday, student.EntranceDate, student.Sex)
 	var result uint64
 	_ = row.Scan(&result)
+	infrastructure.DB.Exec(`
+	INSERT INTO user_role(user_id, role_id) 
+	VALUES ($1, 4);
+	`, result)
 	return result
 }
 
