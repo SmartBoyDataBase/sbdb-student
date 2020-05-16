@@ -26,12 +26,21 @@ func getStudentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	userId, roleId := token.ValidateToken(tokenInHeader[7:])
 	var student model.Student
+	var err error
 	if roleId == STUDENT {
-		student = model.Get(userId)
+		student, err = model.Get(userId)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 	} else {
 		studentId := r.URL.Query().Get("id")
 		userId, _ := strconv.ParseUint(studentId, 10, 64)
-		student = model.Get(userId)
+		student, err = model.Get(userId)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 	}
 	resp, _ := json.Marshal(student)
 	_, _ = w.Write(resp)

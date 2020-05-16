@@ -14,7 +14,7 @@ type Student struct {
 	Sex          string    `json:"sex"`
 }
 
-func Get(id uint64) Student {
+func Get(id uint64) (Student, error) {
 	row := infrastructure.DB.QueryRow(`
 	SELECT college_id, name, birthday, entrance_date, sex
 	FROM student
@@ -22,9 +22,9 @@ func Get(id uint64) Student {
 	`, id)
 	var result Student
 	result.Id = id
-	_ = row.Scan(&result.CollegeId, &result.Name,
+	err := row.Scan(&result.CollegeId, &result.Name,
 		&result.Birthday, &result.EntranceDate, &result.Sex)
-	return result
+	return result, err
 }
 
 func Create(student Student) uint64 {
