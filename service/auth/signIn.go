@@ -24,7 +24,7 @@ func SignIn(username string, password string) (uint64, error) {
 		return 0, err
 	}
 	if resp.StatusCode != 200 {
-		return 0, fmt.Errorf("")
+		return 0, fmt.Errorf("sign in failed")
 	}
 	var result struct {
 		Id uint64 `json:"id"`

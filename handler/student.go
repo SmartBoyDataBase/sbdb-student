@@ -112,6 +112,8 @@ func postStudentHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.SignIn(content.Username, content.Password)
 	content.Id = id
 	model.Create(content.Student)
+	response, _ := json.Marshal(content.Student)
+	w.Write(response)
 }
 
 func StudentHandler(w http.ResponseWriter, r *http.Request) {
