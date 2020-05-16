@@ -10,5 +10,5 @@ func ValidateToken(tokenString string) (uint64, uint64) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	claims := token.Claims.(jwt.MapClaims)
-	return claims["sub"].(uint64), claims["role"].(uint64)
+	return uint64(claims["sub"].(float64)), uint64(claims["role"].(float64))
 }
