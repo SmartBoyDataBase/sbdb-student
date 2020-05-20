@@ -1,11 +1,10 @@
-package auth
+package service
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 )
@@ -22,11 +21,10 @@ func SignIn(username string, password string) (uint64, error) {
 		"application/json",
 		bytes.NewReader(body))
 	if err != nil {
-		log.Println(err)
 		return 0, err
 	}
 	if resp.StatusCode != 200 {
-		return 0, fmt.Errorf("sign in failed")
+		return 0, fmt.Errorf("sign in failed with errcode %d", resp.StatusCode)
 	}
 	var result struct {
 		Id uint64 `json:"id"`
