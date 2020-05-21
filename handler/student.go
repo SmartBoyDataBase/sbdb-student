@@ -71,6 +71,11 @@ func AllHandler(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
-	body, _ := json.Marshal(all)
+	var body []byte
+	if len(all) != 0 {
+		body, _ = json.Marshal(all)
+	} else {
+		body = []byte("[]")
+	}
 	_, _ = w.Write(body)
 }
