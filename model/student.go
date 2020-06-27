@@ -34,8 +34,7 @@ func Create(student Student) (Student, error) {
 	_, err := infrastructure.DB.Exec(`
 	INSERT INTO student(user_id, college_id, name, birthday, entrance_date, sex) 
 	VALUES ($1,$2,$3,$4,$5,$6);
-	`, student.Id, student.CollegeId, student.Name, student.EntranceDate,
-		student.Birthday, student.Sex)
+	`, student.Id, student.CollegeId, student.Name, student.Birthday, student.EntranceDate, student.Sex)
 	if err != nil {
 		return student, err
 	}
@@ -66,6 +65,9 @@ func Delete(id uint64) error {
 	_, err := infrastructure.DB.Exec(`
 	DELETE FROM student
 	WHERE user_id=$1;`, id)
+	_, err = infrastructure.DB.Exec(`
+	DELETE FROM "User"
+	WHERE id=$1;`, id)
 	return err
 }
 
